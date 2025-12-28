@@ -76,7 +76,7 @@ class UnleashedWebhookController extends Controller
             'Parked' => OrderStatus::Pending,
             'Placed' => OrderStatus::Confirmed,
             'Backordered' => OrderStatus::Processing,
-            'Completed' => OrderStatus::Shipped,
+            'Completed' => OrderStatus::Delivered,
             'Deleted' => OrderStatus::Cancelled,
         ];
 
@@ -103,7 +103,7 @@ class UnleashedWebhookController extends Controller
         }
 
         $brandOrder->update([
-            'status' => OrderStatus::Shipped,
+            'status' => OrderStatus::Delivered,
             'fulfilment_status' => FulfilmentStatus::Dispatched,
         ]);
 

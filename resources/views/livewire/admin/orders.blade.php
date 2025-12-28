@@ -36,7 +36,7 @@ new #[Layout('components.layouts.app')] #[Title('Orders - Admin')] class extends
                 'total' => Order::count(),
                 'pending' => Order::where('status', OrderStatus::Pending)->count(),
                 'confirmed' => Order::where('status', OrderStatus::Confirmed)->count(),
-                'completed' => Order::where('status', OrderStatus::Completed)->count(),
+                'delivered' => Order::where('status', OrderStatus::Delivered)->count(),
             ],
         ];
     }
@@ -65,8 +65,8 @@ new #[Layout('components.layouts.app')] #[Title('Orders - Admin')] class extends
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Confirmed</p>
         </div>
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4">
-            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $stats['completed'] }}</p>
-            <p class="text-sm text-zinc-500 dark:text-zinc-400">Completed</p>
+            <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $stats['delivered'] }}</p>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Delivered</p>
         </div>
     </div>
 
