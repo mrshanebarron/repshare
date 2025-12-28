@@ -64,7 +64,7 @@ new #[Layout('components.layouts.app')] #[Title('Venues - Admin')] class extends
                             <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $venue->email }}</p>
                         </td>
                         <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
-                            {{ $venue->type?->label() ?? '-' }}
+                            {{ ucfirst($venue->type ?? '-') }}
                         </td>
                         <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
                             {{ $venue->suburb }}, {{ $venue->state }}

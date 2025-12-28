@@ -13,8 +13,8 @@ new #[Layout('components.layouts.app')] #[Title('Brands - Admin')] class extends
 
     public function with(): array
     {
-        $query = Brand::withCount(['products', 'orders'])
-            ->withSum('orders', 'net_to_brand');
+        $query = Brand::withCount(['products', 'brandOrders'])
+            ->withSum('brandOrders', 'net_to_brand');
 
         if ($this->search) {
             $query->where('name', 'like', "%{$this->search}%");
@@ -63,11 +63,11 @@ new #[Layout('components.layouts.app')] #[Title('Brands - Admin')] class extends
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">Products</p>
                     </div>
                     <div>
-                        <p class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $brand->orders_count }}</p>
+                        <p class="text-lg font-semibold text-zinc-900 dark:text-white">{{ $brand->brand_orders_count }}</p>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">Orders</p>
                     </div>
                     <div>
-                        <p class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">${{ number_format($brand->orders_sum_net_to_brand ?? 0, 0) }}</p>
+                        <p class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">${{ number_format($brand->brand_orders_sum_net_to_brand ?? 0, 0) }}</p>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">Revenue</p>
                     </div>
                 </div>

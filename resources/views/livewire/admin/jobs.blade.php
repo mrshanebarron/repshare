@@ -17,7 +17,7 @@ new #[Layout('components.layouts.app')] #[Title('Jobs - Admin')] class extends C
 
     public function with(): array
     {
-        $query = Job::with(['producer', 'venue', 'brand']);
+        $query = Job::with(['producer', 'venue']);
 
         if ($this->status) {
             $query->where('status', $this->status);
@@ -127,7 +127,7 @@ new #[Layout('components.layouts.app')] #[Title('Jobs - Admin')] class extends C
                             {{ $job->producer?->name }}
                         </td>
                         <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
-                            {{ $job->brand?->name }}
+                            {{ is_array($job->brands) ? implode(', ', $job->brands) : '-' }}
                         </td>
                         <td class="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">
                             @if($job->scheduled_start)
