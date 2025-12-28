@@ -169,16 +169,166 @@ class UnleashedInventoryService implements InventoryServiceInterface
 
     public function releaseStock(string $orderId): bool
     {
-        // Would cancel/void the sales order in Unleashed
-        Log::info('Release stock called for order', ['order_id' => $orderId]);
-        return true;
+        // Cancel/void the sales order in Unleashed
+        try {
+            $this->request('post', "/SalesOrders/{$orderId}/Cancel");
+            Log::info('Unleashed order cancelled', ['order_id' => $orderId]);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to cancel Unleashed order', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     public function commitStock(string $orderId): bool
     {
-        // Would finalize the sales order in Unleashed
-        Log::info('Commit stock called for order', ['order_id' => $orderId]);
-        return true;
+        // Complete the sales order in Unleashed
+        try {
+            $this->request('post', "/SalesOrders/{$orderId}/Complete");
+            Log::info('Unleashed order completed', ['order_id' => $orderId]);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to complete Unleashed order', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Create a sales order in Unleashed for a brand order.
+     */
+    public function createSalesOrder(\App\Models\BrandOrder $brandOrder): ?string
+    {
+        $order = $brandOrder->order;
+        $venue = $order->venue;
+        $warehouse = $brandOrder->warehouse;
+
+        // Build order lines
+        $lines = $brandOrder->lines->map(function ($line, $index) use ($warehouse) {
+            $product = $line->product;
+
+            return [
+                'LineNumber' => $index + 1,
+                'ProductGuid' => $product->unleashed_guid,
+                'ProductCode' => $line->sku,
+                'ProductDescription' => $line->product_name,
+                'OrderQuantity' => $line->quantity,
+                'UnitPrice' => $line->unit_price,
+                'DiscountRate' => $line->discount_percent,
+                'LineTax' => $line->tax_amount,
+                'LineTotal' => $line->line_total,
+                'WarehouseCode' => $warehouse?->code,
+                'WarehouseGuid' => $warehouse?->unleashed_guid,
+            ];
+        })->toArray();
+
+        try {
+            $response = $this->request('post', '/SalesOrders', [
+                'OrderNumber' => $brandOrder->order_number,
+                'OrderDate' => now()->toIso8601String(),
+                'RequiredDate' => $order->requested_delivery_date?->toIso8601String(),
+                'CustomerCode' => $venue->code ?? 'VENUE-' . $venue->id,
+                'CustomerName' => $venue->name,
+                'DeliveryName' => $venue->name,
+                'DeliveryStreetAddress' => $order->delivery_address,
+                'DeliveryCity' => $order->delivery_city,
+                'DeliveryRegion' => $order->delivery_state,
+                'DeliveryPostCode' => $order->delivery_postcode,
+                'DeliveryCountry' => 'Australia',
+                'Comments' => $order->notes,
+                'WarehouseCode' => $warehouse?->code,
+                'WarehouseGuid' => $warehouse?->unleashed_guid,
+                'SalesOrderLines' => $lines,
+                'SubTotal' => $brandOrder->subtotal,
+                'TaxTotal' => $brandOrder->tax_total,
+                'Total' => $brandOrder->grand_total,
+                'OrderStatus' => 'Parked', // Will be completed when ready to ship
+            ]);
+
+            $unleashedOrderId = $response['Guid'] ?? null;
+
+            if ($unleashedOrderId) {
+                $brandOrder->update([
+                    'unleashed_order_id' => $unleashedOrderId,
+                ]);
+
+                Log::info('Unleashed sales order created', [
+                    'brand_order_id' => $brandOrder->id,
+                    'unleashed_order_id' => $unleashedOrderId,
+                ]);
+            }
+
+            return $unleashedOrderId;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create Unleashed sales order', [
+                'brand_order_id' => $brandOrder->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Get sales order status from Unleashed.
+     */
+    public function getSalesOrderStatus(string $orderId): ?string
+    {
+        try {
+            $response = $this->request('get', "/SalesOrders/{$orderId}");
+            return $response['OrderStatus'] ?? null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Sync sales order updates from Unleashed.
+     */
+    public function syncSalesOrderUpdates(): int
+    {
+        $updated = 0;
+        $lastSync = Cache::get('unleashed.orders.last_sync', now()->subHour());
+
+        try {
+            $response = $this->request('get', '/SalesOrders?modifiedSince=' . $lastSync->format('Y-m-d\TH:i:s'));
+
+            foreach ($response['Items'] ?? [] as $unleashedOrder) {
+                $brandOrder = \App\Models\BrandOrder::where('unleashed_order_id', $unleashedOrder['Guid'])->first();
+
+                if (!$brandOrder) {
+                    continue;
+                }
+
+                // Map Unleashed status to internal status
+                $statusMap = [
+                    'Parked' => \App\Enums\OrderStatus::Pending,
+                    'Placed' => \App\Enums\OrderStatus::Confirmed,
+                    'Backordered' => \App\Enums\OrderStatus::Processing,
+                    'Completed' => \App\Enums\OrderStatus::Shipped,
+                    'Deleted' => \App\Enums\OrderStatus::Cancelled,
+                ];
+
+                if (isset($statusMap[$unleashedOrder['OrderStatus']])) {
+                    $brandOrder->update([
+                        'status' => $statusMap[$unleashedOrder['OrderStatus']],
+                    ]);
+                    $updated++;
+                }
+            }
+
+            Cache::put('unleashed.orders.last_sync', now());
+
+        } catch (\Exception $e) {
+            Log::error('Unleashed sales order sync failed', ['error' => $e->getMessage()]);
+        }
+
+        return $updated;
     }
 
     public function syncProducts(): int

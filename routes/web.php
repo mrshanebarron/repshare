@@ -2,6 +2,14 @@
 
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
+use App\Http\Controllers\Webhooks\GeoOpWebhookController;
+use App\Http\Controllers\Webhooks\UnleashedWebhookController;
+
+// Webhook routes (no CSRF, no auth)
+Route::prefix('webhooks')->withoutMiddleware(['web'])->group(function () {
+    Route::post('/geoop', [GeoOpWebhookController::class, 'handle'])->name('webhooks.geoop');
+    Route::post('/unleashed', [UnleashedWebhookController::class, 'handle'])->name('webhooks.unleashed');
+});
 
 // Public routes
 Route::get('/', function () {

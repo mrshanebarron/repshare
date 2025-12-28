@@ -57,6 +57,10 @@ return [
         'driver' => env('JOBS_DRIVER', 'dummy'),
     ],
 
+    'wholesale' => [
+        'driver' => env('WHOLESALE_DRIVER', 'dummy'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Unleashed Software (Inventory & Warehouse)
@@ -98,9 +102,11 @@ return [
     |
     */
 
-    'alm' => [
+    'alm_connect' => [
         'api_key' => env('ALM_API_KEY'),
-        'base_url' => env('ALM_BASE_URL'),
+        'api_secret' => env('ALM_API_SECRET'),
+        'account_id' => env('ALM_ACCOUNT_ID'),
+        'base_url' => env('ALM_BASE_URL', 'https://api.almconnect.com.au/v1'),
     ],
 
     /*
@@ -112,6 +118,7 @@ return [
     'platform' => [
         'default_fee_percent' => env('PLATFORM_FEE_PERCENT', 5),
         'stock_reservation_minutes' => env('STOCK_RESERVATION_MINUTES', 30),
+        'default_hourly_rate' => env('DEFAULT_HOURLY_RATE', 50),
     ],
 
 ];
