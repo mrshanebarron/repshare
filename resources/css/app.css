@@ -15,3 +15,14 @@
     width: 1.5rem !important;
     height: 1.5rem !important;
 }
+
+/* Fix Flux primary button visibility in dark mode */
+[data-flux-button][data-variant="primary"] {
+    background: linear-gradient(to bottom right, #10b981, #3b82f6) !important;
+    color: white !important;
+    border: none !important;
+}
+
+[data-flux-button][data-variant="primary"]:hover {
+    background: linear-gradient(to bottom right, #059669, #2563eb) !important;
+}
